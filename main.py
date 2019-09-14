@@ -106,10 +106,23 @@ def get_events(day,service):
     events = events_result.get('items', [])
 
     if not events:
-        print('No upcoming events found.')
-    for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        print(start, event['summary'])
+        speak('No tienes ningún evento.')
+    else:
+        if len(events) ==1:
+            speak(f'Tienes {len(events)} evento este día')
+        else:
+            speak(f'Tienes {len(events)} eventos este día')
+
+        for event in events:
+            start = event['start'].get('dateTime', event['start'].get('date'))
+            print(start, event['summary'])
+            start_time = str(start.split('T')[1].split('-')[0])
+            if int(start_time.split(':')[0])<12:
+                start_time = start_time + 'am'
+            else:
+                start_time = str(int(start_time.split(':')[0]) - 12)
+                start_time = start_time + 'pm'
+            speak(event['summary'] + ' desde las ' + start_time)
 
 def get_date(text):
     text = text.lower()
@@ -130,9 +143,10 @@ def get_date(text):
             month = MONTHS.index(word) + 1
         elif word in DAYS:
             day_of_week = DAYS.index(word)
-            day = day_of_week
         elif word.isdigit():
             day = int(word)
+        elif word in 'mañana':
+            day = today.day + 1
         else:
             for ext in DAY_EXTENTIONS:
                 found = word.find(ext)
@@ -146,9 +160,18 @@ def get_date(text):
     if month < today.month and month != -1:
         year = year+1
 
-    if day < today.day and month == -1 and day != -1:
+    if month == -1 and day != -1:
+        if day < today.day:
+            month = today.month + 1
+        else:
+            month = today.month
+
+    if month == -1 and day == -1 and day_of_week != -1:
         current_day_of_week = today.weekday()
-        print(current_day_of_week)
+
+    if day == -1 and month == -1 and day_of_week != -1:
+        current_day_of_week = today.weekday()
+        # print(current_day_of_week)
         dif = day_of_week - current_day_of_week
 
         if dif <0:
@@ -158,19 +181,26 @@ def get_date(text):
 
         return today + datetime.timedelta(dif)
     # print(str(day) + '-'+ str(month) +'-'+ str(year))
-    if month == -1 or day ==-1:
-        return None
-        
-    return datetime.date(month=month, day=day, year=year)
+    if day != -1:
+        return datetime.date(month=month, day=day, year=year) 
 
 if __name__ == '__main__':
     service = authenticate_google()
 	# get_events(2, service)
     # main()
-    print(".....")
+    print("B I E N V E N I D O  A L  A S I S T E N T E  D E  V O Z")
     text = get_audio()
-    # print(text)
-    date = get_date(text)
-    print('')
-    print(date)
-    get_events(get_date(text), service)
+
+    CALENDAR_STRS = ['que tengo','tengo planes', 'tengo algo para']
+    for phrase in CALENDAR_STRS:
+        if phrase in text:
+            date = get_date(text)
+            if date:
+                print('')
+                print(date)
+                get_events(get_date(text), service)
+            else:
+                speak('Por favor, intenta de nuevo')
+
+
+        # print(text)
